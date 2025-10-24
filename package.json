@@ -1,0 +1,25 @@
+{
+  "name": "app-vistoria",
+  "version": "1.0.0",
+  "description": "App de vistorias",
+  "private": true,
+  "workspaces": [
+    "packages/frontend",
+    "packages/backend"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:frontend": "npm run dev --workspace=frontend",
+    "dev:backend": "npm run dev --workspace=backend",
+    "build": "npm run build --workspace=frontend",
+    "start": "npm run start --workspace=backend",
+    "install:all": "npm install && npm run install:deps",
+    "install:deps": "npm install --workspace=frontend && npm install --workspace=backend"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0"
+  },
+  "keywords": ["monorepo", "react", "nodejs", "authentication"],
+  "author": "Ian",
+  "license": "MIT"
+}
