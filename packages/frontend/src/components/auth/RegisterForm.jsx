@@ -9,7 +9,10 @@ const RegisterForm = () => {
     name: '',
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    role: 'client', // Default role
+    licenseNumber: '',
+    company: ''
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -18,6 +21,10 @@ const RegisterForm = () => {
 
   const handleChange = (field) => (value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleRoleChange = (role) => {
+    setFormData(prev => ({ ...prev, role }));
   };
 
   const handleSubmit = async (e) => {
@@ -33,12 +40,25 @@ const RegisterForm = () => {
       return;
     }
 
+    // Prepare data for API
+    const submitData = {
+      name: formData.name,
+      email: formData.email,
+      password: formData.password,
+      role: formData.role
+    };
+
+    // Add engineer-specific fields if role is engineer
+    if (formData.role === 'engineer') {
+      submitData.licenseNumber = formData.licenseNumber;
+      submitData.company = formData.company;
+    }
+
     setIsLoading(true);
     setError('');
     
     try {
-      const { name, email, password } = formData;
-      const response = await authService.register({ name, email, password });
+      const response = await authService.register(submitData);
       login(response.user, response.token);
       navigate('/dashboard');
     } catch (err) {
@@ -76,6 +96,46 @@ const RegisterForm = () => {
           icon="lock" 
           onChange={handleChange('confirmPassword')}
         />
+
+        {/* Role Selection */}
+        <div className="role-selection">
+          <label>Tipo de Conta:</label>
+          <div className="role-options">
+            <button
+              type="button"
+              className={`role-button ${formData.role === 'client' ? 'active' : ''}`}
+              onClick={() => handleRoleChange('client')}
+            >
+              👤 Cliente
+            </button>
+            <button
+              type="button"
+              className={`role-button ${formData.role === 'engineer' ? 'active' : ''}`}
+              onClick={() => handleRoleChange('engineer')}
+            >
+              🏗️ Engenheiro
+            </button>
+          </div>
+        </div>
+
+        {/* Engineer-specific fields */}
+        {formData.role === 'engineer' && (
+          <div className="engineer-fields">
+            <InputField 
+              type="text" 
+              placeholder="Número do CREA" 
+              icon="badge" 
+              onChange={handleChange('licenseNumber')}
+            />
+            <InputField 
+              type="text" 
+              placeholder="Empresa" 
+              icon="business" 
+              onChange={handleChange('company')}
+            />
+          </div>
+        )}
+
         <button 
           type="submit" 
           className="register-button"

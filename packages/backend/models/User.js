@@ -29,6 +29,18 @@ const User = sequelize.define('User', {
     validate: {
       len: [6, 100]
     }
+  },
+  role: {
+    type: DataTypes.ENUM('client', 'engineer', 'admin'),
+    defaultValue: 'client'
+  },
+  licenseNumber: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  company: {
+    type: DataTypes.STRING,
+    allowNull: true
   }
 }, {
   hooks: {
@@ -45,6 +57,21 @@ const User = sequelize.define('User', {
 
 User.prototype.comparePassword = async function(candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
+};
+
+// Method to check if user is admin
+User.prototype.isAdmin = function() {
+  return this.role === 'admin';
+};
+
+// Method to check if user is engineer
+User.prototype.isEngineer = function() {
+  return this.role === 'engineer';
+};
+
+// Method to check if user is client
+User.prototype.isClient = function() {
+  return this.role === 'client';
 };
 
 module.exports = User;

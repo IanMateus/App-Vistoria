@@ -5,8 +5,9 @@ const {
   login,
   getMe,
   getUsers
-} = require('../controllers/authcontroller');
+} = require('../controllers/authController');
 const { protect } = require('../middleware/authMiddleware');
+const { requireAdmin } = require('../middleware/roleMiddleware');
 
 const router = express.Router();
 
@@ -36,10 +37,12 @@ const loginValidation = [
     .withMessage('Password is required')
 ];
 
-// Routes
+// Public routes
 router.post('/register', registerValidation, register);
 router.post('/login', loginValidation, login);
+
+// Protected routes
 router.get('/me', protect, getMe);
-router.get('/users', protect, getUsers);
+router.get('/users', protect, requireAdmin, getUsers); // Admin only
 
 module.exports = router;
