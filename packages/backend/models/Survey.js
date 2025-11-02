@@ -13,7 +13,7 @@ const Survey = sequelize.define('Survey', {
     defaultValue: DataTypes.NOW
   },
   status: {
-    type: DataTypes.ENUM('scheduled', 'in_progress', 'completed', 'signed'),
+    type: DataTypes.ENUM('scheduled', 'in_progress', 'completed', 'signed', 'closed'),
     defaultValue: 'scheduled'
   },
   clientSignature: {
@@ -28,11 +28,27 @@ const Survey = sequelize.define('Survey', {
     type: DataTypes.TEXT,
     allowNull: true
   },
-  buildingClientId: {
+  buildingId: {
     type: DataTypes.INTEGER,
-    allowNull: true,
+    allowNull: false,
     references: {
-      model: 'BuildingClients',
+      model: 'Buildings',
+      key: 'id'
+    }
+  },
+  clientId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: 'Clients',
+      key: 'id'
+    }
+  },
+  engineerId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: 'Users',
       key: 'id'
     }
   }

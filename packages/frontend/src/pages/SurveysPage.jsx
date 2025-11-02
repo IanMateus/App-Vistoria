@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { surveyAppService } from '../services/surveyApp';
-import SurveyWizard from '../components/survey/SurveyWizard';
+import SimpleSurveyWizard from '../components/survey/SimpleSurveyWizard'
 
 const SurveysPage = () => {
   const [surveys, setSurveys] = useState([]);
@@ -23,17 +23,31 @@ const SurveysPage = () => {
 
   const handleSurveyCreated = (newSurvey) => {
     setShowWizard(false);
-    fetchSurveys(); // Refresh the list
+    fetchSurveys();
   };
 
   const handleStartLiveSurvey = async (surveyId) => {
     try {
       await surveyAppService.startLiveSurvey(surveyId);
-      // Navigate to live survey page
       window.location.href = `/live-survey/${surveyId}`;
     } catch (error) {
       console.error('Error starting live survey:', error);
       alert('Erro ao iniciar vistoria: ' + error.message);
+    }
+  };
+
+  const handleDeleteSurvey = async (surveyId) => {
+    if (!window.confirm('Tem certeza que deseja excluir esta vistoria? Esta ação não pode ser desfeita.')) {
+      return;
+    }
+
+    try {
+      await surveyAppService.deleteSurvey(surveyId);
+      alert('Vistoria excluída com sucesso!');
+      fetchSurveys();
+    } catch (error) {
+      console.error('Error deleting survey:', error);
+      alert('Erro ao excluir vistoria: ' + error.message);
     }
   };
 
@@ -48,7 +62,7 @@ const SurveysPage = () => {
   if (showWizard) {
     return (
       <div className="dashboard">
-        <SurveyWizard 
+        <SimpleSurveyWizard 
           onSurveyCreated={handleSurveyCreated}
           onCancel={() => setShowWizard(false)}
         />
@@ -68,6 +82,26 @@ const SurveysPage = () => {
         </button>
       </div>
 
+      {/* Survey Stats Summary */}
+      <div className="survey-stats-summary">
+        <div className="stat-card">
+          <div className="stat-number">{surveys.length}</div>
+          <div className="stat-label">Total</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-number">{scheduledSurveys.length}</div>
+          <div className="stat-label">Agendadas</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-number">{inProgressSurveys.length}</div>
+          <div className="stat-label">Em Andamento</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-number">{completedSurveys.length}</div>
+          <div className="stat-label">Concluídas</div>
+        </div>
+      </div>
+
       {/* In Progress Surveys */}
       {inProgressSurveys.length > 0 && (
         <div className="survey-section">
@@ -81,11 +115,12 @@ const SurveysPage = () => {
                     🔄 Em Andamento
                   </span>
                 </div>
-                <p><strong>Edifício:</strong> {survey.building?.name}</p>
-                <p><strong>Cliente:</strong> {survey.client?.name}</p>
+                {/* FIXED: Using correct property names */}
+                <p><strong>Edifício:</strong> {survey.surveyBuilding?.name || 'N/A'}</p>
+                <p><strong>Cliente:</strong> {survey.surveyClient?.name || 'N/A'}</p>
                 <p><strong>Data:</strong> {new Date(survey.surveyDate).toLocaleDateString('pt-BR')}</p>
-                <p><strong>Cômodos:</strong> {survey.rooms?.length || 0}</p>
-                <p><strong>Problemas:</strong> {survey.issues?.length || 0}</p>
+                <p><strong>Cômodos:</strong> {survey.surveyRooms?.length || 0}</p>
+                <p><strong>Problemas:</strong> {survey.surveyIssues?.length || 0}</p>
                 
                 <div className="survey-actions">
                   <Link 
@@ -94,6 +129,12 @@ const SurveysPage = () => {
                   >
                     ▶️ Continuar Vistoria
                   </Link>
+                  <button 
+                    onClick={() => handleDeleteSurvey(survey.id)}
+                    className="btn-danger"
+                  >
+                    🗑️ Excluir
+                  </button>
                 </div>
               </div>
             ))}
@@ -109,9 +150,10 @@ const SurveysPage = () => {
             {scheduledSurveys.map(survey => (
               <div key={survey.id} className="survey-card">
                 <h4>Vistoria #{survey.id}</h4>
-                <p><strong>Edifício:</strong> {survey.building?.name}</p>
-                <p><strong>Cliente:</strong> {survey.client?.name}</p>
-                <p><strong>Apartamento:</strong> {survey.client?.apartmentNumber}</p>
+                {/* FIXED: Using correct property names */}
+                <p><strong>Edifício:</strong> {survey.surveyBuilding?.name || 'N/A'}</p>
+                <p><strong>Cliente:</strong> {survey.surveyClient?.name || 'N/A'}</p>
+                <p><strong>Apartamento:</strong> {survey.surveyClient?.propertyNumber}</p>
                 <p><strong>Data:</strong> {new Date(survey.surveyDate).toLocaleDateString('pt-BR')}</p>
                 <p><strong>Hora:</strong> {new Date(survey.surveyDate).toLocaleTimeString('pt-BR')}</p>
                 <p><strong>Status:</strong> 
@@ -126,6 +168,12 @@ const SurveysPage = () => {
                     className="btn-success"
                   >
                     🔍 Iniciar Vistoria
+                  </button>
+                  <button 
+                    onClick={() => handleDeleteSurvey(survey.id)}
+                    className="btn-danger"
+                  >
+                    🗑️ Excluir
                   </button>
                 </div>
               </div>
@@ -154,8 +202,9 @@ const SurveysPage = () => {
             {completedSurveys.map(survey => (
               <div key={survey.id} className="survey-card completed">
                 <h4>Vistoria #{survey.id}</h4>
-                <p><strong>Edifício:</strong> {survey.building?.name}</p>
-                <p><strong>Cliente:</strong> {survey.client?.name}</p>
+                {/* FIXED: Using correct property names */}
+                <p><strong>Edifício:</strong> {survey.surveyBuilding?.name || 'N/A'}</p>
+                <p><strong>Cliente:</strong> {survey.surveyClient?.name || 'N/A'}</p>
                 <p><strong>Data:</strong> {new Date(survey.surveyDate).toLocaleDateString('pt-BR')}</p>
                 <p><strong>Status:</strong> 
                   <span className={`status-${survey.status}`}>
@@ -163,12 +212,18 @@ const SurveysPage = () => {
                     {survey.status === 'signed' && '✅ Assinada'}
                   </span>
                 </p>
-                <p><strong>Cômodos:</strong> {survey.rooms?.length || 0}</p>
-                <p><strong>Problemas:</strong> {survey.issues?.length || 0}</p>
+                <p><strong>Cômodos:</strong> {survey.surveyRooms?.length || 0}</p>
+                <p><strong>Problemas:</strong> {survey.surveyIssues?.length || 0}</p>
                 
                 <div className="survey-actions">
                   <button className="btn-secondary">
                     📄 Ver Relatório
+                  </button>
+                  <button 
+                    onClick={() => handleDeleteSurvey(survey.id)}
+                    className="btn-danger"
+                  >
+                    🗑️ Excluir
                   </button>
                 </div>
               </div>

@@ -12,12 +12,20 @@ const Room = sequelize.define('Room', {
     allowNull: false
   },
   status: {
-    type: DataTypes.ENUM('pending', 'inspected_ok', 'has_issues'),
+    type: DataTypes.ENUM('pending', 'in_progress', 'completed', 'has_issues'),
     defaultValue: 'pending'
   },
   notes: {
     type: DataTypes.TEXT,
     allowNull: true
+  },
+  surveyId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: 'Surveys',
+      key: 'id'
+    }
   }
 });
 

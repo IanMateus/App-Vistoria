@@ -94,7 +94,10 @@ export const surveyAppService = {
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(data.message || 'Failed to create client');
+      // Improved error handling to show backend validation messages
+      const errorMessage = data.message || 'Failed to create client';
+      console.error('Client creation error:', data);
+      throw new Error(errorMessage);
     }
 
     return data.client;
@@ -170,7 +173,10 @@ export const surveyAppService = {
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(data.message || 'Failed to create survey');
+      // Improved error handling to show backend validation messages
+      const errorMessage = data.message || 'Failed to create survey';
+      console.error('Survey creation error:', data);
+      throw new Error(errorMessage);
     }
 
     return data.survey;
@@ -207,7 +213,23 @@ export const surveyAppService = {
     return data.survey;
   },
 
-  // Rooms
+  // Rooms - NEW FUNCTION for adding multiple rooms to a survey
+  async addRoomsToSurvey(surveyId, rooms) {
+    const response = await fetch(`${API_BASE_URL}/surveys/${surveyId}/rooms`, {
+      method: 'POST',
+      headers: getAuthHeader(),
+      body: JSON.stringify({ rooms })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to add rooms to survey');
+    }
+
+    return data.rooms;
+  },
+
   async createRoom(roomData) {
     const response = await fetch(`${API_BASE_URL}/rooms`, {
       method: 'POST',
@@ -223,6 +245,118 @@ export const surveyAppService = {
 
     return data.room;
   },
+
+  // Add to your existing service functions:
+
+// Room management
+async updateRoom(roomId, updateData) {
+  const response = await fetch(`${API_BASE_URL}/rooms/${roomId}`, {
+    method: 'PUT',
+    headers: getAuthHeader(),
+    body: JSON.stringify(updateData)
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to update room');
+  }
+
+  return data.room;
+},
+
+async deleteRoom(roomId) {
+  const response = await fetch(`${API_BASE_URL}/rooms/${roomId}`, {
+    method: 'DELETE',
+    headers: getAuthHeader()
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to delete room');
+  }
+
+  return data;
+},
+
+// Issue management
+async createIssue(issueData) {
+  const response = await fetch(`${API_BASE_URL}/issues`, {
+    method: 'POST',
+    headers: getAuthHeader(),
+    body: JSON.stringify(issueData)
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to create issue');
+  }
+
+  return data.issue;
+},
+
+async updateIssue(issueId, updateData) {
+  const response = await fetch(`${API_BASE_URL}/issues/${issueId}`, {
+    method: 'PUT',
+    headers: getAuthHeader(),
+    body: JSON.stringify(updateData)
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to update issue');
+  }
+
+  return data.issue;
+},
+
+async deleteIssue(issueId) {
+  const response = await fetch(`${API_BASE_URL}/issues/${issueId}`, {
+    method: 'DELETE',
+    headers: getAuthHeader()
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to delete issue');
+  }
+
+  return data;
+},
+
+async getSurveyIssues(surveyId) {
+  const response = await fetch(`${API_BASE_URL}/issues/survey/${surveyId}`, {
+    headers: getAuthHeader()
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to fetch issues');
+  }
+
+  return data.issues;
+},
+
+// Survey deletion
+async deleteSurvey(surveyId) {
+  const response = await fetch(`${API_BASE_URL}/surveys/${surveyId}`, {
+    method: 'DELETE',
+    headers: getAuthHeader()
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to delete survey');
+  }
+
+  return data;
+},
 
   async updateRoomStatus(roomId, updateData) {
     const response = await fetch(`${API_BASE_URL}/rooms/${roomId}`, {

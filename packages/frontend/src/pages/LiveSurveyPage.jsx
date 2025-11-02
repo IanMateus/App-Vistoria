@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { surveyAppService } from '../services/surveyApp';
-import LiveSurveyRoom from '../components/survey/LiveSurveyRoom';
-import RoomStatus from '../components/survey/RoomStatus';
+import RoomManagement from '../components/survey/RoomManagement';
+import SurveyInfoEditor from '../components/survey/SurveyInfoEditor';
+import SurveyHeaderStats from '../components/survey/SurveyHeaderStats';
 
 const LiveSurveyPage = () => {
   const { surveyId } = useParams();
@@ -12,6 +13,7 @@ const LiveSurveyPage = () => {
   const [issues, setIssues] = useState([]);
   const [loading, setLoading] = useState(true);
   const [completing, setCompleting] = useState(false);
+  const [editingSurvey, setEditingSurvey] = useState(false);
 
   const fetchSurveyData = async () => {
     try {
@@ -44,21 +46,36 @@ const LiveSurveyPage = () => {
     ));
   };
 
-  const handleIssueAdded = async (issueData) => {
-    try {
-      const newIssue = await surveyAppService.createIssue(issueData);
-      setIssues(prev => [...prev, newIssue]);
-      
-      // Update the room to show it has issues
-      const room = rooms.find(r => r.id === issueData.roomId);
-      if (room && room.status !== 'has_issues') {
-        await surveyAppService.updateRoomStatus(room.id, { status: 'has_issues' });
-        handleRoomUpdated({ ...room, status: 'has_issues' });
-      }
-    } catch (error) {
-      console.error('Error adding issue:', error);
-      throw error;
+  const handleRoomDeleted = (roomId) => {
+    setRooms(prev => prev.filter(room => room.id !== roomId));
+    // Also remove issues for this room
+    setIssues(prev => prev.filter(issue => issue.roomId !== roomId));
+  };
+
+  const handleIssueAdded = async (newIssue) => {
+    setIssues(prev => [...prev, newIssue]);
+    
+    // Update the room to show it has issues
+    const room = rooms.find(r => r.id === newIssue.roomId);
+    if (room && room.status !== 'has_issues') {
+      await surveyAppService.updateRoomStatus(room.id, { status: 'has_issues' });
+      handleRoomUpdated({ ...room, status: 'has_issues' });
     }
+  };
+
+  const handleIssueUpdated = (updatedIssue) => {
+    setIssues(prev => prev.map(issue => 
+      issue.id === updatedIssue.id ? updatedIssue : issue
+    ));
+  };
+
+  const handleIssueDeleted = (issueId) => {
+    setIssues(prev => prev.filter(issue => issue.id !== issueId));
+  };
+
+  const handleSurveyUpdated = (updatedSurvey) => {
+    setSurvey(updatedSurvey);
+    setEditingSurvey(false);
   };
 
   const handleCompleteSurvey = async () => {
@@ -81,6 +98,14 @@ const LiveSurveyPage = () => {
     } finally {
       setCompleting(false);
     }
+  };
+
+  // ADD THIS FUNCTION - Handle Get Signature
+  const handleGetSignature = () => {
+    // Navigate to signature page (you'll need to create this page)
+    navigate(`/survey/${surveyId}/signature`);
+    // For now, let's just show an alert
+    alert('Funcionalidade de assinatura será implementada em breve!');
   };
 
   useEffect(() => {
@@ -113,129 +138,97 @@ const LiveSurveyPage = () => {
     );
   }
 
-  const pendingRooms = rooms.filter(room => room.status === 'pending').length;
-  const completedRooms = rooms.filter(room => room.status !== 'pending').length;
-
   return (
     <div className="dashboard">
+      {/* Updated Header Section */}
       <div className="dashboard-header">
-        <div>
+        <div className="header-main">
           <button 
             onClick={() => navigate('/surveys')}
             className="btn-secondary"
           >
             ← Voltar para Vistorias
           </button>
-          <h2>🔍 Vistoria em Andamento</h2>
-        </div>
-        
-        <div className="survey-stats">
-          <span className="stat-badge">
-            🚪 {completedRooms}/{rooms.length} Cômodos
-          </span>
-          <span className="stat-badge">
-            ⚠️ {issues.length} Problemas
-          </span>
-          <button 
-            onClick={handleCompleteSurvey}
-            disabled={completing || pendingRooms > 0}
-            className="btn-success"
-            title={pendingRooms > 0 ? 'Complete todos os cômodos primeiro' : ''}
-          >
-            {completing ? 'Finalizando...' : '✅ Finalizar Vistoria'}
-          </button>
-        </div>
-      </div>
-
-      {/* Survey Info */}
-      <div className="survey-info-card">
-        <div className="info-grid">
-          <div>
-            <h4>🏢 {survey.building?.name}</h4>
-            <p><strong>Endereço:</strong> {survey.building?.address}</p>
-          </div>
-          <div>
-            <h4>👤 {survey.client?.name}</h4>
-            <p><strong>Apartamento:</strong> {survey.client?.apartmentNumber}</p>
-            <p><strong>Telefone:</strong> {survey.client?.phone}</p>
-          </div>
-          <div>
-            <h4>🏗️ {survey.engineer?.name}</h4>
-            <p><strong>Empresa:</strong> {survey.engineer?.company}</p>
-            <p><strong>CREA:</strong> {survey.engineer?.licenseNumber}</p>
+          <div className="header-title">
+            <h2>🔍 Vistoria em Andamento - #{survey.id}</h2>
+            <p className="header-subtitle">
+              {survey.surveyBuilding?.name} • {survey.surveyClient?.name}
+            </p>
           </div>
         </div>
       </div>
 
-      {/* Room Management */}
-      <LiveSurveyRoom 
-        surveyId={surveyId}
-        onRoomAdded={handleRoomAdded}
-        onRoomUpdated={handleRoomUpdated}
+      {/* New Header Stats Component */}
+      <SurveyHeaderStats
+        survey={survey}
+        rooms={rooms}
+        issues={issues}
+        onEditSurvey={() => setEditingSurvey(true)}
+        onCompleteSurvey={handleCompleteSurvey}
+        onGetSignature={handleGetSignature}
       />
 
-      {/* Rooms List */}
-      <div className="rooms-section">
-        <h4>🚪 Cômodos da Vistoria</h4>
-        
-        {rooms.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-icon">🚪</div>
-            <h3>Nenhum cômodo adicionado</h3>
-            <p>Comece adicionando os cômodos que serão inspecionados.</p>
+      {/* Survey Info Card */}
+      <div className="survey-info-card">
+        <div className="info-header">
+          <h3>Informações da Vistoria</h3>
+          <button 
+            onClick={() => setEditingSurvey(true)}
+            className="btn-secondary"
+          >
+            ✏️ Editar
+          </button>
+        </div>
+        <div className="info-grid">
+          <div>
+            <h4>🏢 {survey.surveyBuilding?.name}</h4>
+            <p><strong>Endereço:</strong> {survey.surveyBuilding?.address}</p>
+            <p><strong>Construtora:</strong> {survey.surveyBuilding?.constructionCompany}</p>
           </div>
-        ) : (
-          <div className="rooms-grid">
-            {rooms.map(room => (
-              <RoomStatus
-                key={room.id}
-                room={{
-                  ...room,
-                  issues: issues.filter(issue => issue.roomId === room.id),
-                  surveyId: survey.id
-                }}
-                onStatusChange={handleRoomUpdated}
-                onAddIssue={handleIssueAdded}
-              />
-            ))}
+          <div>
+            <h4>👤 {survey.surveyClient?.name}</h4>
+            <p><strong>Email:</strong> {survey.surveyClient?.email}</p>
+            <p><strong>Telefone:</strong> {survey.surveyClient?.phone}</p>
+            <p><strong>Propriedade:</strong> {survey.surveyClient?.propertyNumber} ({survey.surveyClient?.propertyType === 'apartment' ? 'Apartamento' : 'Casa'})</p>
+          </div>
+          <div>
+            <h4>📅 Informações da Vistoria</h4>
+            <p><strong>Data:</strong> {new Date(survey.surveyDate).toLocaleDateString('pt-BR')}</p>
+            <p><strong>Hora:</strong> {new Date(survey.surveyDate).toLocaleTimeString('pt-BR')}</p>
+            <p><strong>Status:</strong> 
+              <span className={`status-${survey.status}`}>
+                {survey.status === 'in_progress' && '🟡 Em Andamento'}
+              </span>
+            </p>
+          </div>
+        </div>
+        {survey.engineerNotes && (
+          <div className="engineer-notes">
+            <strong>Observações:</strong> {survey.engineerNotes}
           </div>
         )}
       </div>
 
-      {/* Progress Summary */}
-      {rooms.length > 0 && (
-        <div className="progress-summary">
-          <h4>📊 Resumo do Progresso</h4>
-          <div className="progress-bars">
-            <div className="progress-item">
-              <label>Pendentes: {pendingRooms}</label>
-              <div className="progress-bar">
-                <div 
-                  className="progress-fill pending" 
-                  style={{ width: `${(pendingRooms / rooms.length) * 100}%` }}
-                ></div>
-              </div>
-            </div>
-            <div className="progress-item">
-              <label>Com Problemas: {rooms.filter(r => r.status === 'has_issues').length}</label>
-              <div className="progress-bar">
-                <div 
-                  className="progress-fill has-issues" 
-                  style={{ width: `${(rooms.filter(r => r.status === 'has_issues').length / rooms.length) * 100}%` }}
-                ></div>
-              </div>
-            </div>
-            <div className="progress-item">
-              <label>OK: {rooms.filter(r => r.status === 'inspected_ok').length}</label>
-              <div className="progress-bar">
-                <div 
-                  className="progress-fill inspected-ok" 
-                  style={{ width: `${(rooms.filter(r => r.status === 'inspected_ok').length / rooms.length) * 100}%` }}
-                ></div>
-              </div>
-            </div>
-          </div>
-        </div>
+      {/* Combined Room Management and Rooms List */}
+      <RoomManagement
+        surveyId={surveyId}
+        rooms={rooms}
+        issues={issues}
+        onRoomAdded={handleRoomAdded}
+        onRoomUpdated={handleRoomUpdated}
+        onRoomDeleted={handleRoomDeleted}
+        onIssueAdded={handleIssueAdded}
+        onIssueUpdated={handleIssueUpdated}
+        onIssueDeleted={handleIssueDeleted}
+      />
+
+      {/* Edit Survey Modal */}
+      {editingSurvey && (
+        <SurveyInfoEditor
+          survey={survey}
+          onSave={handleSurveyUpdated}
+          onCancel={() => setEditingSurvey(false)}
+        />
       )}
     </div>
   );

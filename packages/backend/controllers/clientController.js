@@ -8,6 +8,7 @@ const createClient = async (req, res) => {
 
     // Validate required fields
     if (!name || !email || !phone || !address || !propertyNumber) {
+      console.log('Receive client data in backend:', req.body)
       return res.status(400).json({
         success: false,
         message: 'Todos os campos obrigatórios devem ser preenchidos: nome, email, telefone, endereço e número da propriedade'

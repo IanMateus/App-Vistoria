@@ -9,7 +9,7 @@ const Issue = sequelize.define('Issue', {
   },
   area: {
     type: DataTypes.STRING,
-    allowNull: false // e.g., "Kitchen", "Bathroom", "Living Room"
+    allowNull: false
   },
   description: {
     type: DataTypes.TEXT,
@@ -19,8 +19,12 @@ const Issue = sequelize.define('Issue', {
     type: DataTypes.ENUM('low', 'medium', 'high', 'critical'),
     defaultValue: 'medium'
   },
+  status: {
+    type: DataTypes.ENUM('pending', 'in_progress', 'fixed', 'wont_fix'),
+    defaultValue: 'pending'
+  },
   photo: {
-    type: DataTypes.STRING, // File path or URL
+    type: DataTypes.STRING,
     allowNull: true
   },
   recommendedAction: {
@@ -30,6 +34,22 @@ const Issue = sequelize.define('Issue', {
   estimatedCost: {
     type: DataTypes.DECIMAL(10, 2),
     allowNull: true
+  },
+  roomId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: 'Rooms',
+      key: 'id'
+    }
+  },
+  surveyId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: 'Surveys',
+      key: 'id'
+    }
   }
 });
 

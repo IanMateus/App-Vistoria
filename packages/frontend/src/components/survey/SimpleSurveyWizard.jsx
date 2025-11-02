@@ -34,7 +34,7 @@ const SimpleSurveyWizard = ({ onSurveyCreated, onCancel }) => {
     phone: '',
     address: '',
     propertyType: 'apartment',
-    propertyNumber: '1', // Default value to prevent null
+    propertyNumber: '1',
     floor: '',
     block: ''
   });
@@ -76,17 +76,8 @@ const SimpleSurveyWizard = ({ onSurveyCreated, onCancel }) => {
     try {
       // Validate required fields
       if (!newClient.name || !newClient.email || !newClient.phone || !newClient.address || !newClient.propertyNumber) {
-        console.log('Missing fields:', {
-        name: newClient.name,
-        email: newClient.email,
-        phone: newClient.phone,
-        address: newClient.address,
-        propertyNumber: newClient.propertyNumber
-      });
-        throw new Error('Todos os campos obrigatórios devem ser preenchidos');
+        throw new Error('Todos os campos obrigatórios devem ser preenchidos: nome, email, telefone, endereço e número da propriedade');
       }
-
-      console.log('Sending client data to backend:', newClient); // ADD THIS LINE
 
       const client = await surveyAppService.createClient(newClient);
       setClients(prev => [...prev, client]);
@@ -95,20 +86,6 @@ const SimpleSurveyWizard = ({ onSurveyCreated, onCancel }) => {
     } catch (error) {
       console.error('Error creating client:', error);
       throw error;
-    }
-  };
-
-  // Link client to building
-  const linkClientToBuilding = async (clientId, buildingId) => {
-    try {
-      const client = selectedClient || newClient;
-      await surveyAppService.linkClientToBuilding({
-        clientEmail: client.email,
-        buildingId: buildingId
-      });
-    } catch (error) {
-      console.error('Error linking client to building:', error);
-      // Don't throw error here - linking might already exist and that's OK
     }
   };
 
@@ -128,56 +105,61 @@ const SimpleSurveyWizard = ({ onSurveyCreated, onCancel }) => {
     }
   };
 
-    // Handle final submission
-    const handleSubmit = async (e) => {
+  // Handle final submission
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
     try {
-        let finalBuilding = selectedBuilding;
-        let finalClient = selectedClient;
+      let finalBuilding = selectedBuilding;
+      let finalClient = selectedClient;
 
-        // Create building if new building was filled AND no building is selected
-        if (newBuilding.name && !selectedBuilding) {
+      // Create building if new building was filled AND no building is selected
+      if (newBuilding.name && !selectedBuilding) {
         finalBuilding = await createNewBuilding();
-        }
+      }
 
-        // Create client if new client was filled AND no client is selected
-        if (newClient.name && !selectedClient) {
-        finalClient = await createNewClient();
-        }
-
-        // Validate we have both building and client
-        if (!finalBuilding) {
-        throw new Error('Selecione ou cadastre um edifício');
-        }
-
-        if (!finalClient) {
-        throw new Error('Selecione ou cadastre um cliente');
-        }
-
-        // Link client to building (this might already exist, which is fine)
+      // Create client if new client was filled AND no client is selected
+      if (newClient.name && !selectedClient) {
         try {
-        await linkClientToBuilding(finalClient.id, finalBuilding.id);
-        } catch (linkError) {
-        console.log('Link might already exist, continuing...', linkError.message);
-        // Continue even if link already exists
+          finalClient = await createNewClient();
+        } catch (clientError) {
+          setError(`Erro ao criar cliente: ${clientError.message}`);
+          setLoading(false);
+          return;
         }
+      }
 
-        // Create survey
+      // Validate we have both building and client
+      if (!finalBuilding) {
+        setError('Selecione ou cadastre um edifício');
+        setLoading(false);
+        return;
+      }
+
+      if (!finalClient) {
+        setError('Selecione ou cadastre um cliente');
+        setLoading(false);
+        return;
+      }
+
+      // Create survey
+      try {
         const survey = await createSurvey(finalClient.id, finalBuilding.id);
-
         alert('✅ Vistoria criada com sucesso!');
         onSurveyCreated(survey);
-        
+      } catch (surveyError) {
+        setError(`Erro ao criar vistoria: ${surveyError.message}`);
+      }
+      
     } catch (error) {
-        console.error('Error in survey creation:', error);
-        setError(error.message || 'Erro ao criar vistoria');
+      console.error('Error in survey creation:', error);
+      setError(error.message || 'Erro ao criar vistoria');
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
-    };
+  };
 
   // Input handlers
   const handleNewBuildingChange = (field) => (e) => {
@@ -221,7 +203,7 @@ const SimpleSurveyWizard = ({ onSurveyCreated, onCancel }) => {
       phone: '',
       address: '',
       propertyType: 'apartment',
-      propertyNumber: '1', // Reset to default
+      propertyNumber: '1',
       floor: '',
       block: ''
     });
@@ -232,19 +214,19 @@ const SimpleSurveyWizard = ({ onSurveyCreated, onCancel }) => {
     return selectedBuilding || newBuilding.name;
   };
 
-    const canProceedToStep3 = () => {
+  const canProceedToStep3 = () => {
     // If we have a selected client, we can proceed
     if (selectedClient) {
-    return true;
+      return true;
     }
 
     // If we're creating a new client, check all required fields
     if (newClient.name && newClient.email && newClient.phone && newClient.address && newClient.propertyNumber) {
-    return true;
+      return true;
     }
 
     return false;
-    };
+  };
 
   useEffect(() => {
     fetchBuildings();
@@ -361,192 +343,192 @@ const SimpleSurveyWizard = ({ onSurveyCreated, onCancel }) => {
     </div>
   );
 
-    // Step 2: Client Selection
-    const renderStep2 = () => (
+  // Step 2: Client Selection
+  const renderStep2 = () => (
     <div className="wizard-step">
-        <h3>👤 Selecionar Cliente</h3>
-        <p className="step-description">
+      <h3>👤 Selecionar Cliente</h3>
+      <p className="step-description">
         Escolha um cliente existente <strong>OU</strong> preencha os dados para cadastrar um novo.
-        </p>
+      </p>
 
-        <div className="selection-options">
+      <div className="selection-options">
         {/* Existing Clients */}
         <div className="option-section">
-            <h4>📋 Clientes Cadastrados</h4>
-            <p className="section-help">Clique em um cliente existente para selecioná-lo</p>
-            <div className="options-grid">
+          <h4>📋 Clientes Cadastrados</h4>
+          <p className="section-help">Clique em um cliente existente para selecioná-lo</p>
+          <div className="options-grid">
             {clients.map(client => (
-                <div
+              <div
                 key={client.id}
                 className={`option-card ${selectedClient?.id === client.id ? 'selected' : ''}`}
                 onClick={() => handleClientSelection(client)}
-                >
+              >
                 <h5>{client.name}</h5>
                 <p><strong>Email:</strong> {client.email}</p>
                 <p><strong>Telefone:</strong> {client.phone}</p>
                 <p><strong>Propriedade:</strong> {client.propertyNumber} ({client.propertyType === 'apartment' ? 'Apartamento' : 'Casa'})</p>
                 {client.floor && <p><strong>Andar:</strong> {client.floor}</p>}
                 {client.block && <p><strong>Bloco:</strong> {client.block}</p>}
-                </div>
+              </div>
             ))}
-            </div>
+          </div>
 
-            {clients.length === 0 && (
+          {clients.length === 0 && (
             <div className="empty-options">
-                <p>Nenhum cliente cadastrado ainda.</p>
-                <p><strong>Preencha os dados ao lado para criar o primeiro cliente.</strong></p>
+              <p>Nenhum cliente cadastrado ainda.</p>
+              <p><strong>Preencha os dados ao lado para criar o primeiro cliente.</strong></p>
             </div>
-            )}
+          )}
         </div>
 
         {/* New Client Form */}
         <div className="option-section">
-            <h4>🆕 Cadastrar Novo Cliente</h4>
-            <p className="section-help">Preencha todos os campos obrigatórios (*)</p>
-            <div className="option-form">
+          <h4>🆕 Cadastrar Novo Cliente</h4>
+          <p className="section-help">Preencha todos os campos obrigatórios (*)</p>
+          <div className="option-form">
             <div className="form-group">
-                <input
+              <input
                 type="text"
                 placeholder="Nome completo *"
                 value={newClient.name}
                 onChange={handleNewClientChange('name')}
                 className="form-input"
                 required
-                />
+              />
             </div>
             <div className="form-group">
-                <input
+              <input
                 type="email"
                 placeholder="Email *"
                 value={newClient.email}
                 onChange={handleNewClientChange('email')}
                 className="form-input"
                 required
-                />
+              />
             </div>
             <div className="form-group">
-                <input
+              <input
                 type="text"
                 placeholder="Telefone *"
                 value={newClient.phone}
                 onChange={handleNewClientChange('phone')}
                 className="form-input"
                 required
-                />
+              />
             </div>
             <div className="form-group">
-                <input
+              <input
                 type="text"
                 placeholder="Endereço residencial *"
                 value={newClient.address}
                 onChange={handleNewClientChange('address')}
                 className="form-input"
                 required
-                />
+              />
             </div>
 
             {/* Property Type */}
             <div className="form-group">
-                <label>Tipo de Propriedade *:</label>
-                <div className="radio-group">
+              <label>Tipo de Propriedade *:</label>
+              <div className="radio-group">
                 <label className="radio-option">
-                    <input
+                  <input
                     type="radio"
                     value="apartment"
                     checked={newClient.propertyType === 'apartment'}
                     onChange={(e) => setNewClient(prev => ({ ...prev, propertyType: e.target.value }))}
-                    />
-                    <span>🏢 Apartamento</span>
+                  />
+                  <span>🏢 Apartamento</span>
                 </label>
                 <label className="radio-option">
-                    <input
+                  <input
                     type="radio"
                     value="house"
                     checked={newClient.propertyType === 'house'}
                     onChange={(e) => setNewClient(prev => ({ ...prev, propertyType: e.target.value }))}
-                    />
-                    <span>🏠 Casa</span>
+                  />
+                  <span>🏠 Casa</span>
                 </label>
-                </div>
+              </div>
             </div>
 
             {/* Property Details */}
             <div className="form-group">
-                <input
+              <input
                 type="text"
                 placeholder={newClient.propertyType === 'apartment' ? 'Número do apartamento *' : 'Número da casa *'}
                 value={newClient.propertyNumber}
                 onChange={handleNewClientChange('propertyNumber')}
                 className="form-input"
                 required
-                />
+              />
             </div>
 
             {/* Only show floor and block for apartments */}
             {newClient.propertyType === 'apartment' && (
-                <div className="form-row">
+              <div className="form-row">
                 <div className="form-group">
-                    <input
+                  <input
                     type="text"
                     placeholder="Andar (opcional)"
                     value={newClient.floor}
                     onChange={handleNewClientChange('floor')}
                     className="form-input"
-                    />
+                  />
                 </div>
                 <div className="form-group">
-                    <input
+                  <input
                     type="text"
                     placeholder="Bloco (opcional)"
                     value={newClient.block}
                     onChange={handleNewClientChange('block')}
                     className="form-input"
-                    />
+                  />
                 </div>
-                </div>
+              </div>
             )}
-            </div>
+          </div>
         </div>
-        </div>
+      </div>
 
-        {/* Selection Status */}
-        <div className="selection-status">
+      {/* Selection Status */}
+      <div className="selection-status">
         {selectedClient ? (
-            <div className="status-message success">
+          <div className="status-message success">
             ✅ <strong>Cliente selecionado:</strong> {selectedClient.name}
-            </div>
+          </div>
         ) : newClient.name ? (
-            <div className="status-message info">
+          <div className="status-message info">
             📝 <strong>Criando novo cliente:</strong> {newClient.name}
-            </div>
+          </div>
         ) : (
-            <div className="status-message warning">
+          <div className="status-message warning">
             ⚠️ Selecione um cliente existente OU preencha os dados para criar um novo
-            </div>
+          </div>
         )}
-        </div>
+      </div>
 
-        {error && (
+      {error && (
         <div className="error-message">
-            {error}
+          {error}
         </div>
-        )}
+      )}
 
-        <div className="wizard-actions">
+      <div className="wizard-actions">
         <button type="button" onClick={handleBack} className="btn-secondary">
-            ← Voltar
+          ← Voltar
         </button>
         <button
-            type="button"
-            onClick={handleNext}
-            disabled={!canProceedToStep3()}
-            className="btn-primary"
+          type="button"
+          onClick={handleNext}
+          disabled={!canProceedToStep3()}
+          className="btn-primary"
         >
-            Continuar →
+          Continuar →
         </button>
-        </div>
+      </div>
     </div>
-    );
+  );
 
   // Step 3: Survey Details
   const renderStep3 = () => {

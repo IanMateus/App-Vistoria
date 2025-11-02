@@ -66,7 +66,7 @@ const getSurveyRooms = async (req, res) => {
       where: { surveyId },
       include: [{
         model: Issue,
-        as: 'issues'
+        as: 'roomIssues'  // CHANGED FROM 'issues' TO 'roomIssues'
       }],
       order: [['createdAt', 'ASC']]
     });
@@ -84,9 +84,72 @@ const getSurveyRooms = async (req, res) => {
     });
   }
 };
+const updateRoom = async (req, res) => {
+  try {
+    const { roomId } = req.params;
+    const { name, status, notes } = req.body;
+
+    const room = await Room.findByPk(roomId);
+    
+    if (!room) {
+      return res.status(404).json({
+        success: false,
+        message: 'Room not found'
+      });
+    }
+
+    await room.update({
+      name: name || room.name,
+      status: status || room.status,
+      notes: notes || room.notes
+    });
+
+    res.json({
+      success: true,
+      message: 'Room updated successfully',
+      room
+    });
+  } catch (error) {
+    console.error('Update room error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error updating room'
+    });
+  }
+};
+
+const deleteRoom = async (req, res) => {
+  try {
+    const { roomId } = req.params;
+
+    const room = await Room.findByPk(roomId);
+    
+    if (!room) {
+      return res.status(404).json({
+        success: false,
+        message: 'Room not found'
+      });
+    }
+
+    await room.destroy();
+
+    res.json({
+      success: true,
+      message: 'Room deleted successfully'
+    });
+  } catch (error) {
+    console.error('Delete room error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error deleting room'
+    });
+  }
+};
 
 module.exports = {
   createRoom,
   updateRoomStatus,
+  updateRoom,
+  deleteRoom,
   getSurveyRooms
 };
